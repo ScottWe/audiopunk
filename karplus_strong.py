@@ -14,43 +14,50 @@ N_CHANNELS = 2
 SAMP_WIDTH = 2
 SAMP_RATE = 44100
 
-output_file = wave.open('karplus_strong.wav', 'w')
-output_file.setparams((N_CHANNELS, SAMP_WIDTH, SAMP_RATE, 0, 'NONE', 'not compresses'))
+# Creates a stereo, 16-bit WAV file. The name of the file is `fn`.
+def create_wav(fn):    
+    out = wave.open(fn, 'w')
+    out.setparams((N_CHANNELS, SAMP_WIDTH, SAMP_RATE, 0, 'NONE', 'not compresses'))
+    return out
 
-# Determines buffer length for desired frequency.
-# There are 44100 samples/second.
-# 440hz requires 440 cycles per second.
-# This gives a period of 44100/440 samples.
-# Rounding errors are ignored in the implementation.
-FREQ = 440
-BUFLEN = SAMP_RATE // FREQ
+# Writes a stereo sample to an open wav file.
+def write_wav(wav, lhs, rhs):
+    packed_lhs = struct.pack('h', lhs)
+    packed_rhs = struct.pack('h', rhs)
+    output_file.writeframes(packed_lhs)
+    output_file.writeframes(packed_rhs)
 
-# Creates the buffer.
-ABS_MAX_SAMPLE = 2 ** (8 * SAMP_WIDTH - 1) - 1
-buf = [random.randint(-ABS_MAX_SAMPLE, ABS_MAX_SAMPLE) for i in range(BUFLEN)]
+
+# Creates a buffer for a string of frequency freq. The buffer length is computed
+# from the length of one period.
+def gen_buffer(freq):
+    BUFLEN = SAMP_RATE // freq
+    BUFMAX = 2 ** (8 * SAMP_WIDTH - 1) - 1
+
+    return [random.randint(-BUFMAX, BUFMAX) for i in range(BUFLEN)]
 
 # Generates pluck sound.
+output_file = create_wav("string.wav")
+buf = gen_buffer(440)
 decayed = False
 while not decayed:
     last_sample = buf[0]
     run_length = 0
-    for i in range(0, BUFLEN):
+    for i in range(0, len(buf)):
         # Checks if the signal has converged.
         sample = buf[i]
         if sample == last_sample:
             run_length = run_length + 1
-            if run_length == BUFLEN:
+            if run_length == len(buf):
                 decayed = True;
                 break;
         else:
             run_length = 1
             last_sample = sample
         # Writes next sample if not.
-        packed_sample = struct.pack('h', sample)
-        output_file.writeframes(packed_sample)
-        output_file.writeframes(packed_sample)
+        write_wav(output_file, sample, sample)
         if i == 0:
-            buf[0] = (buf[0] + buf[BUFLEN - 1]) // 2
+            buf[0] = (buf[0] + buf[len(buf) - 1]) // 2
         else:
             buf[i] = (buf[i] + buf[i - 1]) // 2
 
