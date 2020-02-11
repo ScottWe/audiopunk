@@ -30,36 +30,35 @@ def write_wav(wav, lhs, rhs):
 
 # Creates a buffer for a string of frequency freq. The buffer length is computed
 # from the length of one period.
-def gen_buffer(freq):
+def displace_string(freq):
     BUFLEN = SAMP_RATE // freq
     BUFMAX = 2 ** (8 * SAMP_WIDTH - 1) - 1
 
     return [random.randint(-BUFMAX, BUFMAX) for i in range(BUFLEN)]
 
-# Generates pluck sound.
-output_file = create_wav("string.wav")
-buf = gen_buffer(440)
-decayed = False
-while not decayed:
-    last_sample = buf[0]
+def apply_karplus_iteration(string, wav):
+    last_sample = string[0]
     run_length = 0
-    for i in range(0, len(buf)):
-        # Checks if the signal has converged.
-        sample = buf[i]
+    for i in range(0, len(string)):
+        # Checks if the simulated string has stabilized.
+        sample = string[i]
         if sample == last_sample:
             run_length = run_length + 1
-            if run_length == len(buf):
-                decayed = True;
-                break;
+            if run_length == len(string):
+                return False
         else:
             run_length = 1
             last_sample = sample
-        # Writes next sample if not.
-        write_wav(output_file, sample, sample)
-        if i == 0:
-            buf[0] = (buf[0] + buf[len(buf) - 1]) // 2
-        else:
-            buf[i] = (buf[i] + buf[i - 1]) // 2
 
+        # Writes next sample if not.
+        string[i] = (sample + string[i - 1]) // 2
+        write_wav(wav, sample, sample)
+
+    return True
+
+# Generates pluck sound.
+output_file = create_wav("string.wav")
+string = displace_string(440)
+while apply_karplus_iteration(string, output_file): continue
 output_file.close()
 
