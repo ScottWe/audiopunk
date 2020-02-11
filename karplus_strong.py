@@ -35,13 +35,17 @@ def displace_string(freq):
 
     return [random.randint(-BUFMAX, BUFMAX) for i in range(BUFLEN)]
 
+# Checks if the string has reached equilibrium. This happens when all points
+# along the buffer are equal. Convergence is guaranteed due to integer rounding.
 def is_in_equilibrium(string):
     for i in range(1, len(string)):
         if (string[i] != string[i - 1]):
             return False
     return True
 
-def apply_karplus_iteration(string):
+# Applys a single iteration of decay. This is the averaging filter as described
+# in the original Karplus-Strong.
+def apply_decay(string):
     for i in range(0, len(string)):
         string[i] = (string[i] + string[i - 1]) // 2
 
@@ -50,6 +54,6 @@ output_file = create_wav("string.wav")
 string = displace_string(440)
 while not is_in_equilibrium(string):
     write_wav(output_file, string)
-    apply_karplus_iteration(string)
+    apply_decay(string)
 output_file.close()
 
