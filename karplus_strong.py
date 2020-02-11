@@ -35,30 +35,21 @@ def displace_string(freq):
 
     return [random.randint(-BUFMAX, BUFMAX) for i in range(BUFLEN)]
 
-def apply_karplus_iteration(string):
-    last_sample = string[0]
-    run_length = 0
-    for i in range(0, len(string)):
-        # Checks if the simulated string has stabilized.
-        sample = string[i]
-        if sample == last_sample:
-            run_length = run_length + 1
-            if run_length == len(string):
-                return False
-        else:
-            run_length = 1
-            last_sample = sample
-
-        # Writes next sample if not.
-        string[i] = (sample + string[i - 1]) // 2
-
+def is_in_equilibrium(string):
+    for i in range(1, len(string)):
+        if (string[i] != string[i - 1]):
+            return False
     return True
+
+def apply_karplus_iteration(string):
+    for i in range(0, len(string)):
+        string[i] = (string[i] + string[i - 1]) // 2
 
 # Generates pluck sound.
 output_file = create_wav("string.wav")
 string = displace_string(440)
-while True:
+while not is_in_equilibrium(string):
     write_wav(output_file, string)
-    if not apply_karplus_iteration(string): break
+    apply_karplus_iteration(string)
 output_file.close()
 
